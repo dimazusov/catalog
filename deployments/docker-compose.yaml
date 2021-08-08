@@ -1,0 +1,21 @@
+version: '3'
+services:
+  postgres:
+    ports:
+      - "5432:5432"
+    image: postgres
+    environment:
+      - POSTGRES_USER=db
+      - POSTGRES_PASSWORD=db
+      - POSTGRES_DB=db
+  redis:
+    image: redis
+  app:
+    depends_on:
+      - postgres
+    ports:
+      - 8080:8080
+    build:
+      dockerfile: ./build/Dockerfile
+      context: ..
+
