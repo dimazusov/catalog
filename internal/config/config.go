@@ -8,6 +8,8 @@ import (
 	"github.com/pkg/errors"
 )
 
+const DefaultConfigPath = "configs/config.yaml"
+
 type Config struct {
 	Server struct {
 		HTTP struct {
@@ -35,9 +37,10 @@ type Config struct {
 	Repository struct {
 		Type string `config:"type"`
 	} `config:"repository"`
-	ParseService struct {
-		Url string `config:"url"`
-	} `config:"parseservice"`
+	Redis struct {
+		Address  string `config:"address"`
+		Password string `config:"password"`
+	} `config:"redis"`
 	Kafka struct {
 		Address       string `config:"address"`
 		BatchTimeout  string `config:"batchtimeout"`

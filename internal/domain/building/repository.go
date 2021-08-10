@@ -1,28 +1,31 @@
 package building
 
 import (
+	"catalog/internal/pkg/pagination"
 	"context"
-
-	gorm_condition "github.com/minipkg/db/gorm"
-	"github.com/minipkg/selection_condition"
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
 
 	"catalog/internal/pkg/apperror"
 )
 
-type repository struct {
-	db *gorm.DB
-}
-
 type Repository interface {
 	Get(ctx context.Context, id uint) (c *Building, err error)
 	First(ctx context.Context, cond *Building) (c *Building, err error)
-	Query(ctx context.Context, cond *selection_condition.SelectionCondition) (buildings []Building, err error)
+	Query(ctx context.Context, cond *QueryConditions) (buildings []Building, err error)
 	Create(ctx context.Context, c *Building) (uint, error)
 	Update(ctx context.Context, c *Building) error
 	Delete(ctx context.Context, id uint) error
-	Count(ctx context.Context, cond *selection_condition.SelectionCondition) (uint, error)
+	Count(ctx context.Context, cond *QueryConditions) (uint, error)
+}
+
+type QueryConditions struct {
+	WithOrganizations bool `json:"withOrganization"`
+	*pagination.Pagination
+}
+
+type repository struct {
+	db *gorm.DB
 }
 
 func NewRepository(db *gorm.DB) Repository {
@@ -51,10 +54,16 @@ func (m repository) First(ctx context.Context, cond *Building) (c *Building, err
 	return c, nil
 }
 
-func (m repository) Query(ctx context.Context, cond *selection_condition.SelectionCondition) (buildings []Building, err error) {
-	db := gorm_condition.Conditions(m.db, cond)
+func (m repository) Query(ctx context.Context, cond *QueryConditions) (buildings []Building, err error) {
+	db := m.db.WithContext(ctx).
+		Offset(cond.Pagination.GetOffset()).
+		Limit(cond.Pagination.GetLimit())
 
-	err = db.WithContext(ctx).Find(&buildings).Error
+	if cond.WithOrganizations {
+		db = db.Preload("Organizations")
+	}
+
+	err = db.Find(&buildings).Error
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot get buildings")
 	}
@@ -70,7 +79,7 @@ func (m repository) Create(ctx context.Context, c *Building) (uint, error) {
 }
 
 func (m repository) Update(ctx context.Context, c *Building) error {
-	err := m.db.WithContext(ctx).Create(c).Error
+	err := m.db.WithContext(ctx).Save(c).Error
 	if err != nil {
 		return errors.Wrap(err, "cannot update building")
 	}
@@ -85,11 +94,9 @@ func (m repository) Delete(ctx context.Context, id uint) error {
 	return nil
 }
 
-func (m repository) Count(ctx context.Context, cond *selection_condition.SelectionCondition) (uint, error) {
-	db := gorm_condition.Conditions(m.db, cond)
-
+func (m repository) Count(ctx context.Context, cond *QueryConditions) (uint, error) {
 	var count int64
-	err := db.WithContext(ctx).Count(&count).Error
+	err := m.db.WithContext(ctx).Count(&count).Error
 	if err != nil {
 		return 0, errors.Wrap(err, "cannot get categorys")
 	}

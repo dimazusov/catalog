@@ -1,41 +1,38 @@
 package internalhttp
 
 import (
-	"catalog/internal/domain/category"
-	"catalog/internal/domain/organization"
 	"context"
+	"github.com/minipkg/selection_condition"
 	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/minipkg/pagination"
-	"github.com/minipkg/selection_condition"
 
 	"catalog/internal/app"
+	"catalog/internal/pkg/pagination"
 	"catalog/internal/domain/building"
 	"catalog/internal/pkg/apperror"
+	"catalog/internal/domain/category"
+	"catalog/internal/domain/organization"
 )
 
 func GetBuildingsHandler(c *gin.Context, app *app.App) {
-	cond, err := selection_condition.ParseQueryParams(c.Request.URL.Query(), &building.Building{})
-	if err != nil {
+	cond := building.QueryConditions{
+		Pagination: pagination.New(pagination.DefaultPage, pagination.DefaultPerPage),
+	}
+	if err := c.ShouldBindJSON(&cond); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	count, err := app.Domain.Building.Service.Count(context.Background(), cond)
+	buildings, err := app.Domain.Building.Service.Query(context.Background(), &cond)
 	if err != nil {
 		log.Println(err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": apperror.ErrInternal})
 		return
 	}
 
-	pages := pagination.NewFromRequest(c.Request, int(count))
-
-	cond.Limit = pages.Limit()
-	cond.Offset = pages.Offset()
-
-	buildings, err := app.Domain.Building.Service.Query(context.Background(), cond)
+	count, err := app.Domain.Building.Service.Count(context.Background(), &cond)
 	if err != nil {
 		log.Println(err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": apperror.ErrInternal})
@@ -114,25 +111,22 @@ func DeleteBuildingHandler(c *gin.Context, app *app.App) {
 }
 
 func GetCategoriesHandler(c *gin.Context, app *app.App) {
-	cond, err := selection_condition.ParseQueryParams(c.Request.URL.Query(), &building.Building{})
-	if err != nil {
+	cond := category.QueryConditions{
+		Pagination: pagination.New(pagination.DefaultPage, pagination.DefaultPerPage),
+	}
+	if err := c.ShouldBindJSON(&cond); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	count, err := app.Domain.Building.Service.Count(context.Background(), cond)
+	categories, err := app.Domain.Category.Service.Query(context.Background(), &cond)
 	if err != nil {
 		log.Println(err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": apperror.ErrInternal})
 		return
 	}
 
-	pages := pagination.NewFromRequest(c.Request, int(count))
-
-	cond.Limit = pages.Limit()
-	cond.Offset = pages.Offset()
-
-	categories, err := app.Domain.Category.Service.Query(context.Background(), cond)
+	count, err := app.Domain.Category.Service.Count(context.Background(), &cond)
 	if err != nil {
 		log.Println(err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": apperror.ErrInternal})
@@ -211,25 +205,22 @@ func DeleteCategoryHandler(c *gin.Context, app *app.App) {
 }
 
 func GetOrganizationsHandler(c *gin.Context, app *app.App) {
-	cond, err := selection_condition.ParseQueryParams(c.Request.URL.Query(), &organization.Organization{})
-	if err != nil {
+	cond := organization.QueryConditions{
+		Pagination: pagination.New(pagination.DefaultPage, pagination.DefaultPerPage),
+	}
+	if err := c.ShouldBindJSON(&cond); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	count, err := app.Domain.Organization.Service.Count(context.Background(), cond)
+	organizations, err := app.Domain.Organization.Service.Query(context.Background(), &cond)
 	if err != nil {
 		log.Println(err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": apperror.ErrInternal})
 		return
 	}
 
-	pages := pagination.NewFromRequest(c.Request, int(count))
-
-	cond.Limit = pages.Limit()
-	cond.Offset = pages.Offset()
-
-	organizations, err := app.Domain.Organization.Service.Query(context.Background(), cond)
+	count, err := app.Domain.Organization.Service.Count(context.Background(), &cond)
 	if err != nil {
 		log.Println(err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": apperror.ErrInternal})

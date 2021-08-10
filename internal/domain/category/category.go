@@ -5,10 +5,11 @@ import "catalog/internal/domain/organization"
 const TableName = "category"
 
 type Category struct {
-	ID            uint   `json:"id" db:"id" gorm:"primary_key"`
-	Name          string `json:"name" db:"name"`
-	TLeft         uint   `db:"t_left"`
-	TRight        uint   `db:"t_right"`
+	ID            uint                        `json:"id" db:"id" gorm:"primary_key"`
+	ParentID      uint                        `json:"parentId" db:"parent_id"`
+	Name          string                      `json:"name" db:"name"`
+	tLeft         uint                        `db:"t_left"`
+	tRight        uint                        `db:"t_right"`
 	Organizations []organization.Organization `gorm:"many2many:category2organization"`
 }
 

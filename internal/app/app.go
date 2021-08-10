@@ -1,11 +1,15 @@
 package app
 
 import (
+	"context"
+
+	"github.com/go-redis/redis/v8"
 	minipkg_gorm "github.com/minipkg/db/gorm"
 	"github.com/pkg/errors"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
+	"catalog/internal/cache"
 	"catalog/internal/config"
 	"catalog/internal/domain/building"
 	"catalog/internal/domain/category"
@@ -13,9 +17,9 @@ import (
 )
 
 type Domain struct {
-	Building  DomainBuilding
-	Category DomainCategory
-	Organization   DomainOrganization
+	Building     DomainBuilding
+	Category     DomainCategory
+	Organization DomainOrganization
 }
 
 type DomainBuilding struct {
@@ -34,9 +38,11 @@ type DomainOrganization struct {
 }
 
 type App struct {
-	cfg     *config.Config
-	db      *minipkg_gorm.DB
-	Domain  Domain
+	cfg    *config.Config
+	db     *minipkg_gorm.DB
+	redis  *redis.Client
+	Cache  cache.Cache
+	Domain Domain
 }
 
 func New(config *config.Config) *App {
@@ -57,6 +63,9 @@ func (m *App) Init() error {
 		return err
 	}
 	if err := m.initDB(); err != nil {
+		return err
+	}
+	if err := m.initCache(); err != nil {
 		return err
 	}
 	if err := m.initRepositories(); err != nil {
@@ -84,6 +93,21 @@ func (m *App) initDB() (err error) {
 		m.db = &minipkg_gorm.DB{GormDB: conn}
 		break
 	}
+
+	return nil
+}
+
+func (m *App) initCache() (err error) {
+	rdb := redis.NewClient(&redis.Options{
+		Addr:     m.cfg.Redis.Address,
+		Password: m.cfg.Redis.Password,
+	})
+	err = rdb.Ping(context.Background()).Err()
+	if err != nil {
+		return errors.New("cannot connect to redis")
+	}
+
+	m.Cache = cache.New(rdb)
 
 	return nil
 }

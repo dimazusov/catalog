@@ -10,9 +10,12 @@ services:
       - POSTGRES_DB=db
   redis:
     image: redis
+    ports:
+      - 6379:6379
   app:
     depends_on:
       - postgres
+      - redis
     ports:
       - 8080:8080
     build:
