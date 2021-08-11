@@ -34,7 +34,8 @@ func NewRepository(db *gorm.DB) Repository {
 }
 
 func (m repository) Get(ctx context.Context, id uint) (c *Category, err error) {
-	err = m.db.WithContext(ctx).First(c, id).Error
+	c = &Category{}
+	err = m.db.WithContext(ctx).Preload("Organizations").First(c, id).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, apperror.ErrNotFound
@@ -45,7 +46,8 @@ func (m repository) Get(ctx context.Context, id uint) (c *Category, err error) {
 }
 
 func (m repository) First(ctx context.Context, cond *Category) (c *Category, err error) {
-	err = m.db.WithContext(ctx).Where(cond).First(c).Error
+	c = &Category{}
+	err = m.db.WithContext(ctx).Preload("Organizations").Where(cond).First(c).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, apperror.ErrNotFound

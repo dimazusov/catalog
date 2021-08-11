@@ -35,9 +35,9 @@ func (m service) Get(ctx context.Context, id uint) (b *Building, err error) {
 	key := m.getBuildingCacheKey(id)
 
 	val, err := m.cache.Get(key)
-	bdg := val.(Building)
 	if err == nil {
-		return &bdg, nil
+		bld := val.(Building)
+		return &bld, nil
 	}
 
 	if !errors.Is(err, apperror.ErrNotFound) {
@@ -59,9 +59,9 @@ func (m service) First(ctx context.Context, cond *Building) (b *Building, err er
 	key := m.getBuildingCacheKey(cond.ID)
 
 	val, err := m.cache.Get(key)
-	bdg := val.(Building)
 	if err == nil {
-		return &bdg, nil
+		bld := val.(Building)
+		return &bld, nil
 	}
 
 	if !errors.Is(err, apperror.ErrNotFound) {

@@ -1,11 +1,14 @@
 package cache
 
 import (
-	"catalog/internal/pkg/apperror"
 	"context"
+	"time"
+
 	"github.com/go-redis/redis/v8"
 	"github.com/pkg/errors"
-	"time"
+
+
+	"catalog/internal/pkg/apperror"
 )
 
 const lifetime = 8 * time.Hour
@@ -24,6 +27,7 @@ func New(redis *redis.Client) Cache {
 }
 
 func (m cache) Set(key string, value interface{}) error {
+	// serialize
 	err := m.redis.Set(context.Background(), key, value, lifetime).Err()
 	if err != nil {
 		return errors.Wrapf(err, "cannot set cache %s %#v", key, value)
@@ -32,6 +36,7 @@ func (m cache) Set(key string, value interface{}) error {
 }
 
 func (m cache) Get(key string) (value interface{}, err error) {
+	// unserialize
 	value, err = m.redis.Get(context.Background(), key).Result()
 	if err != nil {
 		if err == redis.Nil {

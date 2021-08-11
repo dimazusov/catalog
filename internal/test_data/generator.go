@@ -1,14 +1,15 @@
 package test_data
 
 import (
+	"log"
+	"math/rand"
+	"os"
+
 	"github.com/brianvoe/gofakeit/v6"
 	"github.com/cheggaaa/pb/v3"
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
-	"log"
-	"math/rand"
-	"os"
 
 	"catalog/internal/domain/building"
 	"catalog/internal/domain/category"
@@ -57,7 +58,7 @@ func (m generator) GenerateTestData() (err error) {
 		return err
 	}
 
-	log.Println("init nested sets")
+	log.Println("generate nested sets")
 	if _, err := m.initCategoryNestedSets(category.RootID, 0); err != nil {
 		return err
 	}
