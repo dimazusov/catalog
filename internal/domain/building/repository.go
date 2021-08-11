@@ -1,11 +1,12 @@
 package building
 
 import (
-	"catalog/internal/pkg/pagination"
 	"context"
+
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
 
+	"catalog/internal/pkg/pagination"
 	"catalog/internal/pkg/apperror"
 )
 

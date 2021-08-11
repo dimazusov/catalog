@@ -3,7 +3,7 @@ module catalog
 go 1.15
 
 require (
-	github.com/brianvoe/gofakeit/v6 v6.7.0 // indirect
+	github.com/brianvoe/gofakeit/v6 v6.7.0
 	github.com/cheggaaa/pb/v3 v3.0.8
 	github.com/gin-gonic/gin v1.6.3
 	github.com/go-playground/validator/v10 v10.4.1 // indirect

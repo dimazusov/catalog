@@ -130,7 +130,7 @@ func (m *App) initRepositories() (err error) {
 
 func (m *App) initServices() (err error) {
 	m.Domain.Category.Service = category.NewService(m.Domain.Category.Repository)
-	m.Domain.Building.Service = building.NewService(m.Domain.Building.Repository)
+	m.Domain.Building.Service = building.NewService(m.Cache, m.Domain.Building.Repository)
 	m.Domain.Organization.Service = organization.NewService(m.Domain.Organization.Repository)
 
 	return nil

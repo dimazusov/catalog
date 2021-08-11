@@ -2,6 +2,7 @@ package category
 
 import "catalog/internal/domain/organization"
 
+const RootID = 0
 const TableName = "category"
 
 type Category struct {

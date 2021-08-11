@@ -1,8 +1,9 @@
-package test_data_init
+package main
 
 import (
 	"catalog/internal/app"
 	"catalog/internal/config"
+	"catalog/internal/test_data"
 	"flag"
 	"log"
 )
@@ -26,5 +27,11 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	// todo: generate data
+	generator := test_data.NewGenerator(application.DB())
+	err = generator.GenerateTestData()
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	log.Println("generate successful")
 }
