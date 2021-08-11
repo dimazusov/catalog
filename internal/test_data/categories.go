@@ -1,6 +1,6 @@
 package test_data
 
-var categories = []string{
+var categoryNames = []string{
 	"Поесть",
 	"Автосервис",
 	"Красота",

@@ -79,7 +79,7 @@ func (m repository) Create(ctx context.Context, c *Category) (newID uint, err er
 
 	txErr := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		err = m.db.Model(c).
-			Where("t_right >= ?", parentCategory.tRight).
+			Where("t_right >= ?", parentCategory.TRight).
 			Update("t_right", "t_right+2").Error
 		if err != nil {
 			return errors.Wrap(err, "cannot update right tree index for category")
@@ -115,14 +115,14 @@ func (m repository) Delete(ctx context.Context, id uint) error {
 
 	return m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		err := m.db.Model(c).
-			Where("t_right > ?", c.tRight).
+			Where("t_right > ?", c.TRight).
 			Update("t_right", "t_right-2").Error
 		if err != nil {
 			return errors.Wrap(err, "cannot update right tree index for category")
 		}
 
-		err = tx.Where("t_left >= ?", c.tLeft).
-			Where("t_right <= ?", c.tRight).
+		err = tx.Where("t_left >= ?", c.TLeft).
+			Where("t_right <= ?", c.TRight).
 			Delete(c).Error
 		if err != nil {
 			return errors.Wrap(err, "cannot create category")
