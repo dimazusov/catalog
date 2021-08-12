@@ -6,8 +6,8 @@ const DefaultPerPage = 10
 const MaxPerPage = 1000
 
 type Pagination struct {
-	PerPage int `json:"perPage"`
-	Page    int `json:"page"`
+	PerPage int `form:"per_page" json:"perPage"`
+	Page    int `form:"page" json:"page"`
 }
 
 func New(page, perPage int) *Pagination {

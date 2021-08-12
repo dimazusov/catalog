@@ -2,7 +2,6 @@ package building
 
 import (
 	"context"
-
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
 
@@ -21,7 +20,7 @@ type Repository interface {
 }
 
 type QueryConditions struct {
-	WithOrganizations bool `json:"withOrganization"`
+	WithOrganizations bool `form:"with_organization" json:"withOrganization"`
 	*pagination.Pagination
 }
 
@@ -99,7 +98,7 @@ func (m repository) Delete(ctx context.Context, id uint) error {
 
 func (m repository) Count(ctx context.Context, cond *QueryConditions) (uint, error) {
 	var count int64
-	err := m.db.WithContext(ctx).Count(&count).Error
+	err := m.db.WithContext(ctx).Model(&Building{}).Count(&count).Error
 	if err != nil {
 		return 0, errors.Wrap(err, "cannot get categorys")
 	}

@@ -22,7 +22,7 @@ func GetBuildingsHandler(c *gin.Context, app *app.App) {
 	cond := building.QueryConditions{
 		Pagination: pagination.New(pagination.DefaultPage, pagination.DefaultPerPage),
 	}
-	if err := c.ShouldBindJSON(&cond); err != nil {
+	if err := c.ShouldBindQuery(&cond); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}

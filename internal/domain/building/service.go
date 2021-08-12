@@ -1,15 +1,13 @@
 package building
 
 import (
+	"catalog/internal/cache"
+	"catalog/internal/pkg/apperror"
 	"context"
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-
 	"github.com/pkg/errors"
-
-	"catalog/internal/cache"
-	"catalog/internal/pkg/apperror"
 )
 
 type service struct {
@@ -34,6 +32,7 @@ func NewService(cache cache.Cache, rep Repository) Service {
 func (m service) Get(ctx context.Context, id uint) (b *Building, err error) {
 	b, err = m.getBuildingFromCache(id)
 	if err == nil {
+
 		return b, nil
 	}
 	if !errors.Is(err, apperror.ErrNotFound) {
@@ -105,7 +104,7 @@ func (m service) getBuildingFromCache(buildingId uint) (*Building, error) {
 	}
 
 	b := &Building{}
-	err = b.UnmarshalJSON(val.([]byte))
+	err = b.UnmarshalJSON([]byte(val.(string)))
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot unmarshal building from cache")
 	}
@@ -136,7 +135,8 @@ func (m service) getBuildingsFromCache(cond *QueryConditions) ([]Building, error
 	}
 
 	buildings := []Building{}
-	err = json.Unmarshal(val.([]byte), &buildings)
+
+	err = json.Unmarshal([]byte(val.(string)), &buildings)
 	if err != nil {
 		return nil, err
 	}
@@ -159,8 +159,7 @@ func (m service) addBuildingsToCache(cond *QueryConditions, buildings []Building
 }
 
 func (m service) getCacheKey(o interface{}) string {
-	h := sha256.New()
-	h.Write([]byte(fmt.Sprintf("%v", o)))
+	key := sha256.New().Sum([]byte(fmt.Sprintf("%v", o)))
 
-	return fmt.Sprintf("%x", h.Sum(nil))
+	return string(key[:16])
 }
