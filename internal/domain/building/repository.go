@@ -6,8 +6,8 @@ import (
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
 
-	"catalog/internal/pkg/pagination"
 	"catalog/internal/pkg/apperror"
+	"catalog/internal/pkg/pagination"
 )
 
 type Repository interface {
@@ -33,28 +33,28 @@ func NewRepository(db *gorm.DB) Repository {
 	return &repository{db: db}
 }
 
-func (m repository) Get(ctx context.Context, id uint) (c *Building, err error) {
-	c = &Building{}
-	err = m.db.WithContext(ctx).First(c, id).Error
+func (m repository) Get(ctx context.Context, id uint) (b *Building, err error) {
+	b = &Building{}
+	err = m.db.WithContext(ctx).First(b, id).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, apperror.ErrNotFound
 		}
 		return nil, errors.Wrap(err, "cannot get by id building")
 	}
-	return c, nil
+	return b, nil
 }
 
-func (m repository) First(ctx context.Context, cond *Building) (c *Building, err error) {
-	c = &Building{}
-	err = m.db.WithContext(ctx).Where(cond).First(c).Error
+func (m repository) First(ctx context.Context, cond *Building) (b *Building, err error) {
+	b = &Building{}
+	err = m.db.WithContext(ctx).Where(cond).First(b).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, apperror.ErrNotFound
 		}
 		return nil, errors.Wrap(err, "cannot get building")
 	}
-	return c, nil
+	return b, nil
 }
 
 func (m repository) Query(ctx context.Context, cond *QueryConditions) (buildings []Building, err error) {

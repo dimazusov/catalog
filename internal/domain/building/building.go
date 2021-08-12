@@ -11,7 +11,7 @@ type Building struct {
 	ID            uint                        `json:"id" db:"id" gorm:"primary_key"`
 	Address       string                      `json:"address" db:"address"`
 	Coords        coords.Coords               `json:"coords" gorm:"embedded"`
-	Organizations []organization.Organization `gorm:"many2many:building2organization"`
+	Organizations []organization.Organization `json:"organizations,omitempty" gorm:"many2many:building2organization"`
 }
 
 func (m Building) TableName() string {

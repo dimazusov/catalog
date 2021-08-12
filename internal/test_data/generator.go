@@ -4,7 +4,6 @@ import (
 	"log"
 	"math/rand"
 	"os"
-	"time"
 
 	"github.com/brianvoe/gofakeit/v6"
 	"github.com/cheggaaa/pb/v3"
@@ -31,7 +30,7 @@ type generator struct {
 }
 
 func NewGenerator(db *gorm.DB) *generator {
-	//db.Logger = newLogger()
+	db.Logger = newLogger()
 	return &generator{
 		db: db,
 	}
@@ -39,22 +38,28 @@ func NewGenerator(db *gorm.DB) *generator {
 
 func newLogger() logger.Interface {
 	return logger.New(
-		log.New(os.Stdout, "\r\n", log.LstdFlags), // io writer
+		log.New(os.Stdout, "\r\n", log.LstdFlags),
 		logger.Config{
-			SlowThreshold:             time.Second,   // Slow SQL threshold
-			LogLevel:                  logger.Silent, // Log level
-			IgnoreRecordNotFoundError: true,          // Ignore ErrRecordNotFound error for logger
-			Colorful:                  false,         // Disable color
+			LogLevel:                  logger.Silent,
+			IgnoreRecordNotFoundError: true,
+			Colorful:                  false,
 		},
 	)
 }
 
 func (m generator) GenerateTestData() (err error) {
+	log.Println("generate buildings")
 	if err := m.generateBuildings(); err != nil {
 		return err
 	}
 
+	log.Println("generate categories")
 	if err := m.generateCategories(); err != nil {
+		return err
+	}
+
+	log.Println("generate nested sets")
+	if _, err := m.initCategoryNestedSets(category.RootID, 0); err != nil {
 		return err
 	}
 
@@ -91,10 +96,10 @@ func (m generator) generateBuildings() error {
 }
 
 func (m generator) generateCategories() (err error) {
-	bar := pb.StartNew(len(categories))
+	bar := pb.StartNew(len(categoryNames))
 
-	for _, catName := range categories {
-		c := category.Category{Name: catName}
+	for _, ctgName := range categoryNames {
+		c := category.Category{Name: ctgName}
 		err := m.db.Create(&c).Error
 		if err != nil {
 			return errors.Wrap(err, "cannot create categories")
@@ -103,8 +108,8 @@ func (m generator) generateCategories() (err error) {
 		childsCategories := make([]category.Category, 0, maxCountSubCategories)
 		for i := 0; i < maxCountSubCategories; i += 1 {
 			childsCategories = append(childsCategories, category.Category{
-				ParentID: c.ID,
-				Name:     categories[rand.Intn(len(categories))],
+				ParentID:      c.ID,
+				Name:          categoryNames[rand.Intn(len(categoryNames))],
 				Organizations: m.generateOrganizations(rand.Intn(maxCategory2Organization)),
 			})
 		}
@@ -137,107 +142,33 @@ func (m generator) generateOrganizations(count int) []organization.Organization 
 	return organizations
 }
 
-//func (m generator) GenerateOrganizations() error {
-//	bar := pb.StartNew(testCountOrganizations)
-//
-//	buildings := make([]organization.Organization, 0, batchSize)
-//	for i := 0; i < testCountBuildings; i += 5000 {
-//		for j := 0; j < batchSize; j++ {
-//			buildings = append(buildings, organization.Organization{
-//				Name: gofakeit.Company(),
-//				Phones: []organization_phone.OrganizationPhone{
-//					{Number: gofakeit.Phone()},
-//					{Number: gofakeit.Phone()},
-//				},
-//			})
-//		}
-//		err := m.db.Create(&buildings).Error
-//		if err != nil {
-//			return errors.Wrap(err, "cannot save organization")
-//		}
-//		buildings = make([]organization.Organization, 0, batchSize)
-//
-//		bar.Add(len(buildings))
-//	}
-//
-//	bar.Finish()
-//
-//	return nil
-//}
-//
-//
-//func (m generator) GenerateCategories2Organizations() (err error) {
-//	//ctgs := []category.Category{}
-//	//err = m.db.Where("parent_id != ? ", category.RootID).Find(&ctgs).Error
-//	//if err != nil {
-//	//	return err
-//	//}
-//	//
-//	//var countOrganizations int64
-//	//err = m.db.Model(&organization.Organization{}).Count(&countOrganizations).Error
-//	//if err != nil {
-//	//	return err
-//	//}
-//	//
-//	//for _, c := range ctgs {
-//	//	categories[rand.Intn(countOrganizations)]
-//	//	c.ID
-//	//
-//	//}
-//
-//	log.Println(m.getRandomID(123))
-//
-//	c := category.Category{
-//		ParentID: 0,
-//		Name: "test",
-//		Organizations: []organization.Organization{
-//			{
-//				Name: "organization name", Phones: []organization_phone.OrganizationPhone{
-//					{Number: "41258-124-123"},
-//				},
-//			},
-//		},
-//	}
-//
-//	err = m.db.Create(&c).Error
-//	if err != nil {
-//		log.Println(err)
-//	}
-//
-//	log.Println(c.ID)
-//
-//
-//	// get count organization
-//	// categories without childs
-//
-//	// for categories {
-//	// rand organization given organizationIDs
-//	// }
-//	// save
-//
-//	return nil
-//}
-//
-//func (m generator) GenerateBuildings2Organizations() (err error) {
-//	// get count organization
-//	// get count buildings
-//
-//	// for categories {
-//	// rand organization given organizationIDs
-//	// }
-//	// save
-//
-//	return nil
-//}
-//
-//func (m generator) getRandomID(total uint) int {
-//	val := rand.Intn(int(total))
-//	if val == 0 {
-//		return 1
-//	}
-//	return val
-//}
-//// todo: organization to category
-//// todo: organization to building
-//
-//// todo: init nested sets
+func (m generator) initCategoryNestedSets(parentCategoryID, beginNestedIndex uint) (currentNestedIndex uint, err error) {
+	categories := []category.Category{}
+
+	err = m.db.Where("parent_id = ?", parentCategoryID).Find(&categories).Error
+	if err != nil {
+		return 0, errors.Wrap(err, "cannot get categories")
+	}
+
+	currentNestedIndex = beginNestedIndex
+
+	for i, _ := range categories {
+		currentNestedIndex += 1
+		categories[i].SeTLeftNestedIndex(currentNestedIndex)
+
+		currentNestedIndex, err = m.initCategoryNestedSets(categories[i].ID, currentNestedIndex)
+		if err != nil {
+			return 0, err
+		}
+
+		currentNestedIndex += 1
+		categories[i].SeTRightNestedIndex(currentNestedIndex)
+
+		err = m.db.Save(&categories[i]).Error
+		if err != nil {
+			return 0, errors.Wrapf(err, "cannot save category, id: %d", categories[i].ID)
+		}
+	}
+
+	return currentNestedIndex, nil
+}

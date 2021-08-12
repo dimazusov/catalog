@@ -2,18 +2,20 @@ package internalhttp
 
 import (
 	"context"
-	"github.com/minipkg/selection_condition"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/minipkg/selection_condition"
+	"github.com/pkg/errors"
 
 	"catalog/internal/app"
-	"catalog/internal/pkg/pagination"
 	"catalog/internal/domain/building"
-	"catalog/internal/pkg/apperror"
 	"catalog/internal/domain/category"
 	"catalog/internal/domain/organization"
+	"catalog/internal/pkg/apperror"
+	"catalog/internal/pkg/pagination"
 )
 
 func GetBuildingsHandler(c *gin.Context, app *app.App) {
@@ -43,13 +45,13 @@ func GetBuildingsHandler(c *gin.Context, app *app.App) {
 }
 
 func GetBuildingHandler(c *gin.Context, app *app.App) {
-	buildingId, err := selection_condition.ParseUintParam(c.Param("id"))
+	buildingID, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	bld, err := app.Domain.Building.Service.Get(context.Background(), buildingId)
+	bld, err := app.Domain.Building.Service.Get(context.Background(), uint(buildingID))
 	if err != nil {
 		log.Println(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": apperror.ErrInternal})
@@ -137,14 +139,18 @@ func GetCategoriesHandler(c *gin.Context, app *app.App) {
 }
 
 func GetCategoryHandler(c *gin.Context, app *app.App) {
-	buildingId, err := selection_condition.ParseUintParam(c.Param("id"))
+	categoryID, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	bld, err := app.Domain.Category.Service.Get(context.Background(), buildingId)
+	bld, err := app.Domain.Category.Service.Get(context.Background(), uint(categoryID))
 	if err != nil {
+		if errors.Is(err, apperror.ErrNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": apperror.ErrNotFound})
+			return
+		}
 		log.Println(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": apperror.ErrInternal})
 		return
@@ -231,13 +237,13 @@ func GetOrganizationsHandler(c *gin.Context, app *app.App) {
 }
 
 func GetOrganizationHandler(c *gin.Context, app *app.App) {
-	buildingId, err := selection_condition.ParseUintParam(c.Param("id"))
+	organizationID, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	bld, err := app.Domain.Organization.Service.Get(context.Background(), buildingId)
+	bld, err := app.Domain.Organization.Service.Get(context.Background(), uint(organizationID))
 	if err != nil {
 		log.Println(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": apperror.ErrInternal})

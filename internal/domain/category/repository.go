@@ -6,8 +6,8 @@ import (
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
 
-	"catalog/internal/pkg/pagination"
 	"catalog/internal/pkg/apperror"
+	"catalog/internal/pkg/pagination"
 )
 
 type repository struct {
@@ -34,7 +34,8 @@ func NewRepository(db *gorm.DB) Repository {
 }
 
 func (m repository) Get(ctx context.Context, id uint) (c *Category, err error) {
-	err = m.db.WithContext(ctx).First(c, id).Error
+	c = &Category{}
+	err = m.db.WithContext(ctx).Preload("Organizations").First(c, id).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, apperror.ErrNotFound
@@ -45,7 +46,8 @@ func (m repository) Get(ctx context.Context, id uint) (c *Category, err error) {
 }
 
 func (m repository) First(ctx context.Context, cond *Category) (c *Category, err error) {
-	err = m.db.WithContext(ctx).Where(cond).First(c).Error
+	c = &Category{}
+	err = m.db.WithContext(ctx).Preload("Organizations").Where(cond).First(c).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, apperror.ErrNotFound
@@ -79,7 +81,7 @@ func (m repository) Create(ctx context.Context, c *Category) (newID uint, err er
 
 	txErr := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		err = m.db.Model(c).
-			Where("t_right >= ?", parentCategory.tRight).
+			Where("t_right >= ?", parentCategory.TRight).
 			Update("t_right", "t_right+2").Error
 		if err != nil {
 			return errors.Wrap(err, "cannot update right tree index for category")
@@ -115,14 +117,14 @@ func (m repository) Delete(ctx context.Context, id uint) error {
 
 	return m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		err := m.db.Model(c).
-			Where("t_right > ?", c.tRight).
+			Where("t_right > ?", c.TRight).
 			Update("t_right", "t_right-2").Error
 		if err != nil {
 			return errors.Wrap(err, "cannot update right tree index for category")
 		}
 
-		err = tx.Where("t_left >= ?", c.tLeft).
-			Where("t_right <= ?", c.tRight).
+		err = tx.Where("t_left >= ?", c.TLeft).
+			Where("t_right <= ?", c.TRight).
 			Delete(c).Error
 		if err != nil {
 			return errors.Wrap(err, "cannot create category")

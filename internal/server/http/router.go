@@ -9,23 +9,25 @@ import (
 func NewGinRouter(app *app.App) *gin.Engine {
 	router := gin.Default()
 
-	router.GET("/buildings", func(c *gin.Context) {GetBuildingsHandler(c, app)})
-	router.GET("/building/:id", func(c *gin.Context) {GetBuildingHandler(c, app)})
-	router.PUT("/building", func(c *gin.Context) {UpdateBuildingHandler(c, app)})
-	router.POST("/building", func(c *gin.Context) {CreateBuildingHandler(c, app)})
-	router.DELETE("/building/:id", func(c *gin.Context) {DeleteBuildingHandler(c, app)})
+	v1Group := router.Group("/api/v1")
 
-	router.GET("/categories", func(c *gin.Context) {GetCategoriesHandler(c, app)})
-	router.GET("/category/:id", func(c *gin.Context) {GetCategoryHandler(c, app)})
-	router.PUT("/category", func(c *gin.Context) {UpdateCategoryHandler(c, app)})
-	router.POST("/category", func(c *gin.Context) {CreateCategoryHandler(c, app)})
-	router.DELETE("/category/:id", func(c *gin.Context) {DeleteCategoryHandler(c, app)})
+	v1Group.GET("/buildings", func(c *gin.Context) { GetBuildingsHandler(c, app) })
+	v1Group.GET("/building/:id", func(c *gin.Context) { GetBuildingHandler(c, app) })
+	v1Group.PUT("/building", func(c *gin.Context) { UpdateBuildingHandler(c, app) })
+	v1Group.POST("/building", func(c *gin.Context) { CreateBuildingHandler(c, app) })
+	v1Group.DELETE("/building/:id", func(c *gin.Context) { DeleteBuildingHandler(c, app) })
 
-	router.GET("/organizations", func(c *gin.Context) {GetOrganizationsHandler(c, app)})
-	router.GET("/organization/:id", func(c *gin.Context) {GetOrganizationHandler(c, app)})
-	router.PUT("/organization", func(c *gin.Context) {UpdateOrganizationHandler(c, app)})
-	router.POST("/organization", func(c *gin.Context) {CreateOrganizationHandler(c, app)})
-	router.DELETE("/organization/:id", func(c *gin.Context) {DeleteOrganizationHandler(c, app)})
+	v1Group.GET("/categories", func(c *gin.Context) { GetCategoriesHandler(c, app) })
+	v1Group.GET("/category/:id", func(c *gin.Context) { GetCategoryHandler(c, app) })
+	v1Group.PUT("/category", func(c *gin.Context) { UpdateCategoryHandler(c, app) })
+	v1Group.POST("/category", func(c *gin.Context) { CreateCategoryHandler(c, app) })
+	v1Group.DELETE("/category/:id", func(c *gin.Context) { DeleteCategoryHandler(c, app) })
+
+	v1Group.GET("/organizations", func(c *gin.Context) { GetOrganizationsHandler(c, app) })
+	v1Group.GET("/organization/:id", func(c *gin.Context) { GetOrganizationHandler(c, app) })
+	v1Group.PUT("/organization", func(c *gin.Context) { UpdateOrganizationHandler(c, app) })
+	v1Group.POST("/organization", func(c *gin.Context) { CreateOrganizationHandler(c, app) })
+	v1Group.DELETE("/organization/:id", func(c *gin.Context) { DeleteOrganizationHandler(c, app) })
 
 	return router
 }
