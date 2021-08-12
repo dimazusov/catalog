@@ -34,6 +34,7 @@ func NewRepository(db *gorm.DB) Repository {
 }
 
 func (m repository) Get(ctx context.Context, id uint) (c *Building, err error) {
+	c = &Building{}
 	err = m.db.WithContext(ctx).First(c, id).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -45,6 +46,7 @@ func (m repository) Get(ctx context.Context, id uint) (c *Building, err error) {
 }
 
 func (m repository) First(ctx context.Context, cond *Building) (c *Building, err error) {
+	c = &Building{}
 	err = m.db.WithContext(ctx).Where(cond).First(c).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {

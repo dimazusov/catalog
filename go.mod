@@ -12,6 +12,7 @@ require (
 	github.com/json-iterator/go v1.1.10 // indirect
 	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/lib/pq v1.9.0 // indirect
+	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/minipkg/db v0.0.13
 	github.com/minipkg/selection_condition v0.0.3
 	github.com/pkg/errors v0.9.1

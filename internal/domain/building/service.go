@@ -1,15 +1,15 @@
 package building
 
 import (
-	"bytes"
 	"context"
-	"encoding/gob"
+	"crypto/sha256"
+	"encoding/json"
 	"fmt"
 
 	"github.com/pkg/errors"
 
-	"catalog/internal/pkg/apperror"
 	"catalog/internal/cache"
+	"catalog/internal/pkg/apperror"
 )
 
 type service struct {
@@ -32,14 +32,10 @@ func NewService(cache cache.Cache, rep Repository) Service {
 }
 
 func (m service) Get(ctx context.Context, id uint) (b *Building, err error) {
-	key := m.getBuildingCacheKey(id)
-
-	val, err := m.cache.Get(key)
-	bdg := val.(Building)
+	b, err = m.getBuildingFromCache(id)
 	if err == nil {
-		return &bdg, nil
+		return b, nil
 	}
-
 	if !errors.Is(err, apperror.ErrNotFound) {
 		return nil, err
 	}
@@ -48,7 +44,7 @@ func (m service) Get(ctx context.Context, id uint) (b *Building, err error) {
 		return nil, err
 	}
 
-	if err = m.cache.Set(key, *b); err != nil {
+	if err = m.addBuildingToCache(b); err != nil {
 		return nil, err
 	}
 
@@ -56,23 +52,7 @@ func (m service) Get(ctx context.Context, id uint) (b *Building, err error) {
 }
 
 func (m service) First(ctx context.Context, cond *Building) (b *Building, err error) {
-	key := m.getBuildingCacheKey(cond.ID)
-
-	val, err := m.cache.Get(key)
-	bdg := val.(Building)
-	if err == nil {
-		return &bdg, nil
-	}
-
-	if !errors.Is(err, apperror.ErrNotFound) {
-		return nil, err
-	}
-
 	if b, err = m.rep.Get(ctx, cond.ID); err != nil {
-		return nil, err
-	}
-
-	if err = m.cache.Set(key, *b); err != nil {
 		return nil, err
 	}
 
@@ -80,14 +60,10 @@ func (m service) First(ctx context.Context, cond *Building) (b *Building, err er
 }
 
 func (m service) Query(ctx context.Context, cond *QueryConditions) (buildings []Building, err error) {
-	key := m.getBuildingsCacheKey(cond)
-
-	val, err := m.cache.Get(key)
-	buildings = val.([]Building)
+	buildings, err = m.getBuildingsFromCache(cond)
 	if err == nil {
 		return buildings, nil
 	}
-
 	if !errors.Is(err, apperror.ErrNotFound) {
 		return nil, err
 	}
@@ -96,7 +72,8 @@ func (m service) Query(ctx context.Context, cond *QueryConditions) (buildings []
 		return nil, err
 	}
 
-	if err = m.cache.Set(key, buildings); err != nil {
+	err = m.addBuildingsToCache(cond, buildings)
+	if err != nil {
 		return nil, err
 	}
 
@@ -119,12 +96,71 @@ func (m service) Count(ctx context.Context, cond *QueryConditions) (uint, error)
 	return m.rep.Count(ctx, cond)
 }
 
-func (m service) getBuildingCacheKey(buildingId uint) string {
-	return fmt.Sprintf("%s.%d", TableName, buildingId)
+func (m service) getBuildingFromCache(buildingId uint) (*Building, error) {
+	key := fmt.Sprintf("%s.%d", TableName, buildingId)
+
+	val, err := m.cache.Get(key)
+	if err != nil {
+		return nil, errors.Wrap(err, "cannot get building from cache")
+	}
+
+	b := &Building{}
+	err = b.UnmarshalJSON(val.([]byte))
+	if err != nil {
+		return nil, errors.Wrap(err, "cannot unmarshal building from cache")
+	}
+
+	return b, nil
 }
 
-func (m service) getBuildingsCacheKey(cond *QueryConditions) string {
-	var b bytes.Buffer
-	gob.NewEncoder(&b).Encode(cond)
-	return string(b.Bytes())
+func (m service) addBuildingToCache(b *Building) error {
+	key := fmt.Sprintf("%s.%d", TableName, b.ID)
+
+	data, err := b.MarshalJSON()
+	if err != nil {
+		return errors.Wrapf(err, "cannot marshal building %#v", *b)
+	}
+
+	err = m.cache.Set(key, data)
+	if err != nil {
+		return errors.Wrapf(err, "cannot set building to cache %#v", data)
+	}
+
+	return nil
+}
+
+func (m service) getBuildingsFromCache(cond *QueryConditions) ([]Building, error) {
+	val, err := m.cache.Get(m.getCacheKey(cond))
+	if err != nil {
+		return nil, err
+	}
+
+	buildings := []Building{}
+	err = json.Unmarshal(val.([]byte), &buildings)
+	if err != nil {
+		return nil, err
+	}
+
+	return buildings, nil
+}
+
+func (m service) addBuildingsToCache(cond *QueryConditions, buildings []Building) error {
+	data, err := json.Marshal(&buildings)
+	if err != nil {
+		return err
+	}
+
+	err = m.cache.Set(m.getCacheKey(cond), string(data))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m service) getCacheKey(o interface{}) string {
+	h := sha256.New()
+	h.Write([]byte(fmt.Sprintf("%v", o)))
+
+	return fmt.Sprintf("%x", h.Sum(nil))
 }

@@ -1,11 +1,13 @@
 package cache
 
 import (
-	"catalog/internal/pkg/apperror"
 	"context"
+	"time"
+
 	"github.com/go-redis/redis/v8"
 	"github.com/pkg/errors"
-	"time"
+
+	"catalog/internal/pkg/apperror"
 )
 
 const lifetime = 8 * time.Hour
