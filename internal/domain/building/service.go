@@ -1,13 +1,13 @@
 package building
 
 import (
+	"catalog/internal/pkg/hasher"
+	"context"
+	"encoding/json"
+	"github.com/pkg/errors"
+
 	"catalog/internal/cache"
 	"catalog/internal/pkg/apperror"
-	"context"
-	"crypto/sha256"
-	"encoding/json"
-	"fmt"
-	"github.com/pkg/errors"
 )
 
 type service struct {
@@ -96,9 +96,12 @@ func (m service) Count(ctx context.Context, cond *QueryConditions) (uint, error)
 }
 
 func (m service) getBuildingFromCache(buildingId uint) (*Building, error) {
-	key := fmt.Sprintf("%s.%d", TableName, buildingId)
+	cacheKey, err := hasher.New().GetHashFromStruct(Building{ID: buildingId})
+	if err != nil {
+		return nil, errors.Wrap(err, "cannot get cache key")
+	}
 
-	val, err := m.cache.Get(key)
+	val, err := m.cache.Get(cacheKey)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot get building from cache")
 	}
@@ -113,14 +116,17 @@ func (m service) getBuildingFromCache(buildingId uint) (*Building, error) {
 }
 
 func (m service) addBuildingToCache(b *Building) error {
-	key := fmt.Sprintf("%s.%d", TableName, b.ID)
+	cacheKey, err := hasher.New().GetHashFromStruct(Building{ID: b.ID})
+	if err != nil {
+		return errors.Wrap(err, "cannot get cache key")
+	}
 
 	data, err := b.MarshalJSON()
 	if err != nil {
 		return errors.Wrapf(err, "cannot marshal building %#v", *b)
 	}
 
-	err = m.cache.Set(key, data)
+	err = m.cache.Set(cacheKey, data)
 	if err != nil {
 		return errors.Wrapf(err, "cannot set building to cache %#v", data)
 	}
@@ -129,7 +135,12 @@ func (m service) addBuildingToCache(b *Building) error {
 }
 
 func (m service) getBuildingsFromCache(cond *QueryConditions) ([]Building, error) {
-	val, err := m.cache.Get(m.getCacheKey(cond))
+	cacheKey, err := hasher.New().GetHashFromStruct(*cond)
+	if err != nil {
+		return nil, errors.Wrap(err, "cannot get cache key")
+	}
+
+	val, err := m.cache.Get(cacheKey)
 	if err != nil {
 		return nil, err
 	}
@@ -150,16 +161,15 @@ func (m service) addBuildingsToCache(cond *QueryConditions, buildings []Building
 		return err
 	}
 
-	err = m.cache.Set(m.getCacheKey(cond), string(data))
+	cacheKey, err := hasher.New().GetHashFromStruct(*cond)
+	if err != nil {
+		return errors.Wrap(err, "cannot get cache key")
+	}
+
+	err = m.cache.Set(cacheKey, string(data))
 	if err != nil {
 		return err
 	}
 
 	return nil
-}
-
-func (m service) getCacheKey(o interface{}) string {
-	key := sha256.New().Sum([]byte(fmt.Sprintf("%v", o)))
-
-	return string(key[:16])
 }

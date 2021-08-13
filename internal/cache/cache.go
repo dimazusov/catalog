@@ -41,6 +41,5 @@ func (m cache) Get(key string) (value interface{}, err error) {
 		}
 		return nil, errors.Wrapf(err, "cannot get cache %s", key)
 	}
-
 	return value, nil
 }

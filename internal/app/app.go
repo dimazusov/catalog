@@ -40,7 +40,6 @@ type DomainOrganization struct {
 type App struct {
 	cfg    *config.Config
 	db     *minipkg_gorm.DB
-	redis  *redis.Client
 	Cache  cache.Cache
 	Domain Domain
 }
@@ -53,16 +52,11 @@ func (m *App) DB() *gorm.DB {
 	return m.db.DB()
 }
 
-func (m *App) LogInfo(data interface{}) error {
-	//return m.logger.Info(data)
-	return nil
-}
-
 func (m *App) Init() error {
-	if err := m.initLogger(); err != nil {
+	if err := m.initDB(); err != nil {
 		return err
 	}
-	if err := m.initDB(); err != nil {
+	if err := m.initSchemes(); err != nil {
 		return err
 	}
 	if err := m.initCache(); err != nil {
@@ -78,11 +72,6 @@ func (m *App) Init() error {
 	return nil
 }
 
-func (m *App) initLogger() (err error) {
-	//m.logger, err = logger.New(m.cfg.Logger.Path, m.cfg.Logger.Level)
-	return err
-}
-
 func (m *App) initDB() (err error) {
 	switch m.cfg.Repository.Type {
 	case "postgres":
@@ -91,7 +80,6 @@ func (m *App) initDB() (err error) {
 			return errors.Wrapf(err, "cannot connect to postgres")
 		}
 		m.db = &minipkg_gorm.DB{GormDB: conn}
-		break
 	}
 
 	return nil
@@ -113,9 +101,15 @@ func (m *App) initCache() (err error) {
 }
 
 func (m *App) initSchemes() (err error) {
-	m.db, err = m.db.SchemeInit(&category.Category{})
-	m.db, err = m.db.SchemeInit(&building.Building{})
-	m.db, err = m.db.SchemeInit(&organization.Organization{})
+	if m.db, err = m.db.SchemeInit(&category.Category{}); err != nil {
+		return err
+	}
+	if m.db, err = m.db.SchemeInit(&building.Building{}); err != nil {
+		return err
+	}
+	if m.db, err = m.db.SchemeInit(&organization.Organization{}); err != nil {
+		return err
+	}
 
 	return nil
 }

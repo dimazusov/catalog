@@ -3,10 +3,6 @@ server:
     host: "0.0.0.0"
     port: "8080"
 
-logger:
-  path: "log/log.txt"
-  level: "debug"
-
 redis:
   address: "localhost:6379"
   password: ""

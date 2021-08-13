@@ -152,7 +152,7 @@ func (m generator) initCategoryNestedSets(parentCategoryID, beginNestedIndex uin
 
 	currentNestedIndex = beginNestedIndex
 
-	for i, _ := range categories {
+	for i := range categories {
 		currentNestedIndex += 1
 		categories[i].SeTLeftNestedIndex(currentNestedIndex)
 
