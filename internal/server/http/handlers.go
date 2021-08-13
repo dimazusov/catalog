@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
 	"github.com/minipkg/selection_condition"
 	"github.com/pkg/errors"
 
@@ -116,7 +117,7 @@ func GetCategoriesHandler(c *gin.Context, app *app.App) {
 	cond := category.QueryConditions{
 		Pagination: pagination.New(pagination.DefaultPage, pagination.DefaultPerPage),
 	}
-	if err := c.ShouldBindJSON(&cond); err != nil {
+	if err := c.ShouldBindQuery(&cond); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -214,7 +215,7 @@ func GetOrganizationsHandler(c *gin.Context, app *app.App) {
 	cond := organization.QueryConditions{
 		Pagination: pagination.New(pagination.DefaultPage, pagination.DefaultPerPage),
 	}
-	if err := c.ShouldBindJSON(&cond); err != nil {
+	if err := c.ShouldBindQuery(&cond); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -288,18 +289,92 @@ func CreateOrganizationHandler(c *gin.Context, app *app.App) {
 }
 
 func DeleteOrganizationHandler(c *gin.Context, app *app.App) {
-	buildingId, err := selection_condition.ParseUintParam(c.Param("id"))
+	organizationID, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	err = app.Domain.Organization.Service.Delete(context.Background(), buildingId)
+	ctgCond := &category.QueryConditions{
+		OrganizationID: uint(organizationID),
+		Pagination:     pagination.New(pagination.DefaultPage, pagination.DefaultPerPage),
+	}
+	categories, err := app.Domain.Category.Service.Query(context.Background(), ctgCond)
+	if err != nil {
+		log.Println(err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": apperror.ErrInternal})
+		return
+	}
+	if len(categories) != 0 {
+		c.JSON(http.StatusConflict, gin.H{"error": apperror.ErrBadRequest, "categories": categories})
+		return
+	}
+
+	bldCond := &building.QueryConditions{
+		OrganizationID: uint(organizationID),
+		Pagination:     pagination.New(pagination.DefaultPage, pagination.DefaultPerPage),
+	}
+	buildings, err := app.Domain.Building.Service.Query(context.Background(), bldCond)
+	if err != nil {
+		log.Println(err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": apperror.ErrInternal})
+		return
+	}
+	if len(buildings) != 0 {
+		c.JSON(http.StatusConflict, gin.H{"error": apperror.ErrBadRequest, "buildings": buildings})
+		return
+	}
+
+	err = app.Domain.Organization.Service.Delete(context.Background(), uint(organizationID))
 	if err != nil {
 		log.Println(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": apperror.ErrInternal})
 		return
 	}
 
+	c.JSON(http.StatusOK, gin.H{})
+}
+
+func UpdateBuilding2OrganizationsHandler(c *gin.Context, app *app.App) {
+	buildingID, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	organizationIDs := []uint{}
+	err = c.ShouldBindWith(&organizationIDs, binding.JSON)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	err = app.Domain.Building.Service.BindOrganizations(context.Background(), uint(buildingID), organizationIDs)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": apperror.ErrBadRequest})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{})
+}
+
+func UpdateCategory2OrganizationsHandler(c *gin.Context, app *app.App) {
+	categoryID, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	organizationIDs := []uint{}
+	err = c.ShouldBindWith(&organizationIDs, binding.JSON)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	err = app.Domain.Category.Service.BindOrganizations(context.Background(), uint(categoryID), organizationIDs)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": apperror.ErrBadRequest})
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{})
 }

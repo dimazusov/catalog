@@ -29,5 +29,8 @@ func NewGinRouter(app *app.App) *gin.Engine {
 	v1Group.POST("/organization", func(c *gin.Context) { CreateOrganizationHandler(c, app) })
 	v1Group.DELETE("/organization/:id", func(c *gin.Context) { DeleteOrganizationHandler(c, app) })
 
+	v1Group.PUT("/building/:id/organizations", func(c *gin.Context) { UpdateBuilding2OrganizationsHandler(c, app) })
+	v1Group.PUT("/category/:id/organizations", func(c *gin.Context) { UpdateCategory2OrganizationsHandler(c, app) })
+
 	return router
 }
