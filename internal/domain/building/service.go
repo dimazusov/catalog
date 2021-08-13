@@ -1,12 +1,14 @@
 package building
 
 import (
-	"catalog/internal/cache"
-	"catalog/internal/pkg/apperror"
 	"context"
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+
+	"catalog/internal/cache"
+	"catalog/internal/pkg/apperror"
+
 	"github.com/pkg/errors"
 )
 
@@ -23,6 +25,7 @@ type Service interface {
 	Update(ctx context.Context, b *Building) error
 	Delete(ctx context.Context, id uint) error
 	Count(ctx context.Context, cond *QueryConditions) (uint, error)
+	BindOrganizations(ctx context.Context, buildingID uint, organizationIDs []uint) (err error)
 }
 
 func NewService(cache cache.Cache, rep Repository) Service {
@@ -93,6 +96,10 @@ func (m service) Delete(ctx context.Context, id uint) error {
 
 func (m service) Count(ctx context.Context, cond *QueryConditions) (uint, error) {
 	return m.rep.Count(ctx, cond)
+}
+
+func (m service) BindOrganizations(ctx context.Context, buildingID uint, organizationIDs []uint) (err error) {
+	return m.rep.BindOrganizations(ctx, buildingID, organizationIDs)
 }
 
 func (m service) getBuildingFromCache(buildingId uint) (*Building, error) {

@@ -5,9 +5,10 @@ import (
 
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
-	"catalog/internal/pkg/pagination"
 	"catalog/internal/pkg/apperror"
+	"catalog/internal/pkg/pagination"
 )
 
 type repository struct {
@@ -33,26 +34,28 @@ func NewRepository(db *gorm.DB) Repository {
 	return &repository{db: db}
 }
 
-func (m repository) Get(ctx context.Context, id uint) (c *Organization, err error) {
-	err = m.db.WithContext(ctx).First(c, id).Error
+func (m repository) Get(ctx context.Context, id uint) (o *Organization, err error) {
+	o = &Organization{}
+	err = m.db.WithContext(ctx).First(o, id).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, apperror.ErrNotFound
 		}
 		return nil, errors.Wrap(err, "cannot get by id organization")
 	}
-	return c, nil
+	return o, nil
 }
 
-func (m repository) First(ctx context.Context, cond *Organization) (c *Organization, err error) {
-	err = m.db.WithContext(ctx).Where(cond).First(c).Error
+func (m repository) First(ctx context.Context, cond *Organization) (o *Organization, err error) {
+	o = &Organization{}
+	err = m.db.WithContext(ctx).Where(cond).First(o).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, apperror.ErrNotFound
 		}
 		return nil, errors.Wrap(err, "cannot get organization")
 	}
-	return c, nil
+	return o, nil
 }
 
 func (m repository) Query(ctx context.Context, cond *QueryConditions) (organizations []Organization, err error) {
@@ -71,16 +74,16 @@ func (m repository) Query(ctx context.Context, cond *QueryConditions) (organizat
 	return organizations, nil
 }
 
-func (m repository) Create(ctx context.Context, c *Organization) (uint, error) {
-	err := m.db.WithContext(ctx).Create(c).Error
+func (m repository) Create(ctx context.Context, o *Organization) (uint, error) {
+	err := m.db.WithContext(ctx).Create(o).Error
 	if err != nil {
 		return 0, errors.Wrap(err, "cannot create organization")
 	}
-	return c.ID, nil
+	return o.ID, nil
 }
 
-func (m repository) Update(ctx context.Context, c *Organization) error {
-	err := m.db.WithContext(ctx).Save(c).Error
+func (m repository) Update(ctx context.Context, o *Organization) error {
+	err := m.db.WithContext(ctx).Save(o).Error
 	if err != nil {
 		return errors.Wrap(err, "cannot update organization")
 	}
@@ -88,7 +91,8 @@ func (m repository) Update(ctx context.Context, c *Organization) error {
 }
 
 func (m repository) Delete(ctx context.Context, id uint) error {
-	err := m.db.WithContext(ctx).Delete(&Organization{ID: id}).Error
+	org := Organization{ID: id}
+	err := m.db.WithContext(ctx).Model(&org).Select(clause.Associations).Delete(&org).Error
 	if err != nil {
 		return errors.Wrap(err, "cannot delete organization")
 	}
@@ -97,9 +101,9 @@ func (m repository) Delete(ctx context.Context, id uint) error {
 
 func (m repository) Count(ctx context.Context, cond *QueryConditions) (uint, error) {
 	var count int64
-	err := m.db.WithContext(ctx).Count(&count).Error
+	err := m.db.WithContext(ctx).Model(&Organization{}).Count(&count).Error
 	if err != nil {
-		return 0, errors.Wrap(err, "cannot get categorys")
+		return 0, errors.Wrap(err, "cannot get organizations count")
 	}
 
 	return uint(count), nil

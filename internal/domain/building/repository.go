@@ -2,9 +2,12 @@ package building
 
 import (
 	"context"
+
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
+	"catalog/internal/domain/organization"
 	"catalog/internal/pkg/apperror"
 	"catalog/internal/pkg/pagination"
 )
@@ -17,10 +20,12 @@ type Repository interface {
 	Update(ctx context.Context, c *Building) error
 	Delete(ctx context.Context, id uint) error
 	Count(ctx context.Context, cond *QueryConditions) (uint, error)
+	BindOrganizations(ctx context.Context, buildingID uint, organizationIDs []uint) (err error)
 }
 
 type QueryConditions struct {
 	WithOrganizations bool `form:"with_organization" json:"withOrganization"`
+	OrganizationID    uint
 	*pagination.Pagination
 }
 
@@ -57,10 +62,14 @@ func (m repository) First(ctx context.Context, cond *Building) (b *Building, err
 }
 
 func (m repository) Query(ctx context.Context, cond *QueryConditions) (buildings []Building, err error) {
-	db := m.db.WithContext(ctx).
+	db := m.db.Debug().WithContext(ctx).
 		Offset(cond.Pagination.GetOffset()).
 		Limit(cond.Pagination.GetLimit())
 
+	if cond.OrganizationID != 0 {
+		db = db.Joins("JOIN building2organization bld2org ON bld2org.building_id = building.id").
+			Where("bld2org.organization_id = ?", cond.OrganizationID)
+	}
 	if cond.WithOrganizations {
 		db = db.Preload("Organizations")
 	}
@@ -89,7 +98,12 @@ func (m repository) Update(ctx context.Context, c *Building) error {
 }
 
 func (m repository) Delete(ctx context.Context, id uint) error {
-	err := m.db.WithContext(ctx).Delete(&Building{ID: id}).Error
+	b, err := m.Get(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	err = m.db.WithContext(ctx).Model(b).Select(clause.Associations).Delete(b).Error
 	if err != nil {
 		return errors.Wrap(err, "cannot delete building")
 	}
@@ -100,8 +114,27 @@ func (m repository) Count(ctx context.Context, cond *QueryConditions) (uint, err
 	var count int64
 	err := m.db.WithContext(ctx).Model(&Building{}).Count(&count).Error
 	if err != nil {
-		return 0, errors.Wrap(err, "cannot get categorys")
+		return 0, errors.Wrap(err, "cannot get count buildings")
 	}
 
 	return uint(count), nil
+}
+
+func (m repository) BindOrganizations(ctx context.Context, buildingID uint, organizationIDs []uint) (err error) {
+	c, err := m.Get(ctx, buildingID)
+	if err != nil {
+		return err
+	}
+
+	organizations := make([]organization.Organization, 0, len(organizationIDs))
+	for _, orgID := range organizationIDs {
+		organizations = append(organizations, organization.Organization{ID: orgID})
+	}
+
+	err = m.db.Model(c).Association("Organizations").Replace(organizations)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
