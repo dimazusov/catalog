@@ -3,12 +3,12 @@ package category
 import (
 	"context"
 
+	"github.com/pkg/errors"
+	"gorm.io/gorm"
+
 	"catalog/internal/domain/organization"
 	"catalog/internal/pkg/apperror"
 	"catalog/internal/pkg/pagination"
-
-	"github.com/pkg/errors"
-	"gorm.io/gorm"
 )
 
 type repository struct {
@@ -86,15 +86,32 @@ func (m repository) Create(ctx context.Context, c *Category) (newID uint, err er
 		return 0, err
 	}
 
+	if errors.Is(err, apperror.ErrNotFound) && c.ParentID != 0 {
+		return 0, errors.Wrap(apperror.ErrNotFound, "parent category not found")
+	}
+
+	var parentTRight uint = 0
+	if c.ParentID != 0 {
+		parentTRight = parentCategory.TRight
+		c.TLeft = parentCategory.TRight
+		c.TRight = parentCategory.TRight + 1
+	} else {
+		c.TLeft = 1
+		c.TRight = 2
+	}
+
 	txErr := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		err = m.db.Model(c).
-			Where("t_right >= ?", parentCategory.TRight).
-			Update("t_right", "t_right+2").Error
+		err := m.db.Exec("UPDATE category SET t_left = t_left-2 WHERE id = ?", c.ParentID).Error
 		if err != nil {
 			return errors.Wrap(err, "cannot update right tree index for category")
 		}
 
-		err := tx.Create(c).Error
+		err = m.db.Exec("UPDATE category SET t_left = t_left+2, t_right = t_right+2 WHERE t_right >= ?", parentTRight).Error
+		if err != nil {
+			return errors.Wrap(err, "cannot update right tree index for category")
+		}
+
+		err = tx.Create(c).Error
 		if err != nil {
 			return errors.Wrap(err, "cannot create category")
 		}
@@ -109,11 +126,39 @@ func (m repository) Create(ctx context.Context, c *Category) (newID uint, err er
 }
 
 func (m repository) Update(ctx context.Context, c *Category) error {
-	err := m.db.WithContext(ctx).Save(c).Error
+	parentCategory, err := m.Get(ctx, c.ParentID)
 	if err != nil {
-		return errors.Wrap(err, "cannot update category")
+		return errors.Wrap(err, "cannot get category")
 	}
-	return nil
+
+	offsetToParentCategory := parentCategory.TRight - c.TLeft
+	sizeSubTree := c.TRight - c.TLeft + 1
+
+	return m.db.Debug().Transaction(func(tx *gorm.DB) error {
+		if err = m.db.Save(c).Error; err != nil {
+			return errors.Wrap(err, "cannot save category")
+		}
+
+		query := "UPDATE category SET t_left=t_left+?,t_right=t_right+? WHERE t_right>?"
+		err = m.db.Exec(query, sizeSubTree, sizeSubTree, offsetToParentCategory).Error
+		if err != nil {
+			return errors.Wrap(err, "cannot update category subtree")
+		}
+
+		query = "UPDATE category SET t_left=t_left+?,t_right=t_right+? WHERE t_left>=? AND t_right<=?"
+		err = m.db.Exec(query, offsetToParentCategory, offsetToParentCategory, c.TLeft, c.TRight).Error
+		if err != nil {
+			return errors.Wrap(err, "cannot update category subtree")
+		}
+
+		query = "UPDATE category SET t_left=t_left-?,t_right=t_right-? WHERE t_left>?"
+		err = m.db.Exec(query, sizeSubTree, sizeSubTree, c.TLeft).Error
+		if err != nil {
+			return errors.Wrap(err, "cannot update category subtree")
+		}
+
+		return nil
+	})
 }
 
 func (m repository) Delete(ctx context.Context, id uint) error {
@@ -122,24 +167,29 @@ func (m repository) Delete(ctx context.Context, id uint) error {
 		return err
 	}
 
-	return m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		err = m.db.WithContext(ctx).Model(c).Association("Organizations").Delete(c)
+	if c.TRight-c.TLeft != 1 {
+		return apperror.ErrEntityHasChilds
+	}
+
+	return m.db.Debug().WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		err = tx.Model(c).Association("Organizations").Clear()
 		if err != nil {
 			return errors.Wrap(err, "cannot delete category")
 		}
 
-		err := m.db.Model(c).
-			Where("t_right > ?", c.TRight).
-			Update("t_right", "t_right-2").Error
-		if err != nil {
-			return errors.Wrap(err, "cannot update right tree index for category")
-		}
-
-		err = tx.Where("t_left >= ?", c.TLeft).
-			Where("t_right <= ?", c.TRight).
-			Delete(c).Error
+		err = tx.Delete(c).Error
 		if err != nil {
 			return errors.Wrap(err, "cannot create category")
+		}
+
+		err = m.db.Exec("UPDATE category SET t_left=t_left+2 WHERE id=?", c.ParentID).Error
+		if err != nil {
+			return errors.Wrap(err, "cannot update category subtree")
+		}
+
+		err = m.db.Exec("UPDATE category SET t_left=t_left-2,t_right=t_right-2 WHERE t_right>?", c.TRight).Error
+		if err != nil {
+			return errors.Wrap(err, "cannot update category subtree")
 		}
 
 		return nil

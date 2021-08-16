@@ -7,4 +7,4 @@ import (
 var ErrNotFound = errors.New("Not found")
 var ErrBadRequest = errors.New("Bad request")
 var ErrInternal = errors.New("Internal error")
-var ErrEntityHashAssociation = errors.New("Entity has association")
+var ErrEntityHasChilds = errors.New("Entity has childs")

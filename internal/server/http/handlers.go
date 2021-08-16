@@ -55,7 +55,7 @@ func GetBuildingHandler(c *gin.Context, app *app.App) {
 	bld, err := app.Domain.Building.Service.Get(context.Background(), uint(buildingID))
 	if err != nil {
 		log.Println(err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": apperror.ErrInternal})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": apperror.ErrInternal.Error()})
 		return
 	}
 
@@ -72,7 +72,7 @@ func UpdateBuildingHandler(c *gin.Context, app *app.App) {
 	err := app.Domain.Building.Service.Update(context.Background(), &bdg)
 	if err != nil {
 		log.Println(err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": apperror.ErrInternal})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": apperror.ErrInternal.Error()})
 		return
 	}
 
@@ -89,7 +89,7 @@ func CreateBuildingHandler(c *gin.Context, app *app.App) {
 	buildingID, err := app.Domain.Building.Service.Create(context.Background(), &bdg)
 	if err != nil {
 		log.Println(err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": apperror.ErrInternal})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": apperror.ErrInternal.Error()})
 		return
 	}
 
@@ -106,7 +106,7 @@ func DeleteBuildingHandler(c *gin.Context, app *app.App) {
 	err = app.Domain.Building.Service.Delete(context.Background(), buildingId)
 	if err != nil {
 		log.Println(err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": apperror.ErrInternal})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": apperror.ErrInternal.Error()})
 		return
 	}
 
@@ -125,14 +125,14 @@ func GetCategoriesHandler(c *gin.Context, app *app.App) {
 	categories, err := app.Domain.Category.Service.Query(context.Background(), &cond)
 	if err != nil {
 		log.Println(err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": apperror.ErrInternal})
+		c.JSON(http.StatusBadRequest, gin.H{"error": apperror.ErrInternal.Error()})
 		return
 	}
 
 	count, err := app.Domain.Category.Service.Count(context.Background(), &cond)
 	if err != nil {
 		log.Println(err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": apperror.ErrInternal})
+		c.JSON(http.StatusBadRequest, gin.H{"error": apperror.ErrInternal.Error()})
 		return
 	}
 
@@ -153,7 +153,7 @@ func GetCategoryHandler(c *gin.Context, app *app.App) {
 			return
 		}
 		log.Println(err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": apperror.ErrInternal})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": apperror.ErrInternal.Error()})
 		return
 	}
 
@@ -170,7 +170,7 @@ func UpdateCategoryHandler(c *gin.Context, app *app.App) {
 	err := app.Domain.Category.Service.Update(context.Background(), &ctg)
 	if err != nil {
 		log.Println(err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": apperror.ErrInternal})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": apperror.ErrInternal.Error()})
 		return
 	}
 
@@ -187,11 +187,11 @@ func CreateCategoryHandler(c *gin.Context, app *app.App) {
 	buildingID, err := app.Domain.Category.Service.Create(context.Background(), &ctg)
 	if err != nil {
 		log.Println(err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": apperror.ErrInternal})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": apperror.ErrInternal.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"buildingId": buildingID})
+	c.JSON(http.StatusOK, gin.H{"categoryId": buildingID})
 }
 
 func DeleteCategoryHandler(c *gin.Context, app *app.App) {
@@ -203,8 +203,13 @@ func DeleteCategoryHandler(c *gin.Context, app *app.App) {
 
 	err = app.Domain.Category.Service.Delete(context.Background(), buildingId)
 	if err != nil {
+		if errors.Is(err, apperror.ErrEntityHasChilds) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": apperror.ErrEntityHasChilds.Error()})
+			return
+		}
+
 		log.Println(err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": apperror.ErrInternal})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": apperror.ErrInternal.Error()})
 		return
 	}
 
@@ -223,14 +228,14 @@ func GetOrganizationsHandler(c *gin.Context, app *app.App) {
 	organizations, err := app.Domain.Organization.Service.Query(context.Background(), &cond)
 	if err != nil {
 		log.Println(err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": apperror.ErrInternal})
+		c.JSON(http.StatusBadRequest, gin.H{"error": apperror.ErrInternal.Error()})
 		return
 	}
 
 	count, err := app.Domain.Organization.Service.Count(context.Background(), &cond)
 	if err != nil {
 		log.Println(err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": apperror.ErrInternal})
+		c.JSON(http.StatusBadRequest, gin.H{"error": apperror.ErrInternal.Error()})
 		return
 	}
 
@@ -247,7 +252,7 @@ func GetOrganizationHandler(c *gin.Context, app *app.App) {
 	bld, err := app.Domain.Organization.Service.Get(context.Background(), uint(organizationID))
 	if err != nil {
 		log.Println(err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": apperror.ErrInternal})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": apperror.ErrInternal.Error()})
 		return
 	}
 
@@ -264,7 +269,7 @@ func UpdateOrganizationHandler(c *gin.Context, app *app.App) {
 	err := app.Domain.Organization.Service.Update(context.Background(), &org)
 	if err != nil {
 		log.Println(err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": apperror.ErrInternal})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": apperror.ErrInternal.Error()})
 		return
 	}
 
@@ -281,7 +286,7 @@ func CreateOrganizationHandler(c *gin.Context, app *app.App) {
 	buildingID, err := app.Domain.Organization.Service.Create(context.Background(), &org)
 	if err != nil {
 		log.Println(err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": apperror.ErrInternal})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": apperror.ErrInternal.Error()})
 		return
 	}
 
@@ -302,11 +307,11 @@ func DeleteOrganizationHandler(c *gin.Context, app *app.App) {
 	categories, err := app.Domain.Category.Service.Query(context.Background(), ctgCond)
 	if err != nil {
 		log.Println(err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": apperror.ErrInternal})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": apperror.ErrInternal.Error()})
 		return
 	}
 	if len(categories) != 0 {
-		c.JSON(http.StatusConflict, gin.H{"error": apperror.ErrBadRequest, "categories": categories})
+		c.JSON(http.StatusConflict, gin.H{"error": apperror.ErrBadRequest.Error(), "categories": categories})
 		return
 	}
 
@@ -317,18 +322,18 @@ func DeleteOrganizationHandler(c *gin.Context, app *app.App) {
 	buildings, err := app.Domain.Building.Service.Query(context.Background(), bldCond)
 	if err != nil {
 		log.Println(err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": apperror.ErrInternal})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": apperror.ErrInternal.Error()})
 		return
 	}
 	if len(buildings) != 0 {
-		c.JSON(http.StatusConflict, gin.H{"error": apperror.ErrBadRequest, "buildings": buildings})
+		c.JSON(http.StatusConflict, gin.H{"error": apperror.ErrBadRequest.Error(), "buildings": buildings})
 		return
 	}
 
 	err = app.Domain.Organization.Service.Delete(context.Background(), uint(organizationID))
 	if err != nil {
 		log.Println(err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": apperror.ErrInternal})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": apperror.ErrInternal.Error()})
 		return
 	}
 
@@ -351,7 +356,7 @@ func UpdateBuilding2OrganizationsHandler(c *gin.Context, app *app.App) {
 
 	err = app.Domain.Building.Service.BindOrganizations(context.Background(), uint(buildingID), organizationIDs)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": apperror.ErrBadRequest})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": apperror.ErrBadRequest.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{})
@@ -373,7 +378,7 @@ func UpdateCategory2OrganizationsHandler(c *gin.Context, app *app.App) {
 
 	err = app.Domain.Category.Service.BindOrganizations(context.Background(), uint(categoryID), organizationIDs)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": apperror.ErrBadRequest})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": apperror.ErrBadRequest.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{})
