@@ -24,3 +24,9 @@ lint: install-lint-deps
 
 migrate:
 	docker-compose -f deployments/docker-compose.yaml exec -it
+
+swagger-init:
+	go get -u github.com/swaggo/swag/cmd/swag
+
+swagger: swagger-init
+ 	swag init -g ./internal/server/http/router.go -o api
