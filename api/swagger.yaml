@@ -26,6 +26,28 @@ definitions:
           $ref: '#/definitions/building.Building'
         type: array
     type: object
+  category.Category:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      organizations:
+        items:
+          $ref: '#/definitions/organization.Organization'
+        type: array
+      parentId:
+        type: integer
+    type: object
+  category.CategoryList:
+    properties:
+      count:
+        type: integer
+      items:
+        items:
+          $ref: '#/definitions/category.Category'
+        type: array
+    type: object
   coords.Coords:
     properties:
       lat:
@@ -44,6 +66,15 @@ definitions:
           $ref: '#/definitions/organization_phone.OrganizationPhone'
         type: array
     type: object
+  organization.OrganizationList:
+    properties:
+      count:
+        type: integer
+      items:
+        items:
+          $ref: '#/definitions/organization.Organization'
+        type: array
+    type: object
   organization_phone.OrganizationPhone:
     properties:
       id:
@@ -55,17 +86,177 @@ definitions:
     type: object
 info:
   contact: {}
-  description: This is a sample server celler server.
-  termsOfService: http://swagger.io/terms/
-  title: Swagger Example API
+  description: Catalog api
+  title: Swagger API
   version: "1.0"
 paths:
+  /building:
+    post:
+      consumes:
+      - application/json
+      description: create building
+      operationId: create-building
+      parameters:
+      - description: creatable building
+        in: body
+        name: building
+        required: true
+        schema:
+          $ref: '#/definitions/building.Building'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/building.Building'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api_error.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api_error.Error'
+      summary: create building
+    put:
+      consumes:
+      - application/json
+      description: update building
+      operationId: update-building
+      parameters:
+      - description: updatable building
+        in: body
+        name: building
+        required: true
+        schema:
+          $ref: '#/definitions/building.Building'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api_error.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api_error.Error'
+      summary: update building
+  /building/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: delete building by id
+      operationId: delete-building-by-id
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api_error.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api_error.Error'
+      summary: delete building by id
+    get:
+      consumes:
+      - application/json
+      description: get building by id
+      operationId: get-building-by-id
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/building.Building'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api_error.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api_error.Error'
+      summary: get building by id
+  /building/{id}/organizations:
+    put:
+      consumes:
+      - application/json
+      description: bind organizations to building
+      operationId: building-to-organizations
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: boolean
+      - description: creatable building
+        in: body
+        name: categoryIds
+        required: true
+        schema:
+          items:
+            type: integer
+          type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api_error.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api_error.Error'
+      summary: bind organizations to building
   /buildings:
     get:
       consumes:
       - application/json
       description: get buildings by params
       operationId: get-buildings
+      parameters:
+      - description: with organization
+        in: query
+        name: with_organization
+        type: boolean
+      - description: per page
+        in: query
+        name: per_page
+        type: integer
+      - description: page
+        in: query
+        name: page
+        type: integer
       produces:
       - application/json
       responses:
@@ -82,4 +273,334 @@ paths:
           schema:
             $ref: '#/definitions/api_error.Error'
       summary: get buildings
+  /categories:
+    get:
+      consumes:
+      - application/json
+      description: get categories by params
+      operationId: get-categories
+      parameters:
+      - description: with organization
+        in: query
+        name: with_organization
+        type: boolean
+      - description: per page
+        in: query
+        name: per_page
+        type: integer
+      - description: page
+        in: query
+        name: page
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/category.CategoryList'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api_error.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api_error.Error'
+      summary: get categories
+  /category:
+    post:
+      consumes:
+      - application/json
+      description: create category
+      operationId: create-category
+      parameters:
+      - description: creatable category
+        in: body
+        name: category
+        required: true
+        schema:
+          $ref: '#/definitions/category.Category'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/category.Category'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api_error.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api_error.Error'
+      summary: create category
+    put:
+      consumes:
+      - application/json
+      description: category category
+      operationId: category-category
+      parameters:
+      - description: updatable category
+        in: body
+        name: category
+        required: true
+        schema:
+          $ref: '#/definitions/category.Category'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api_error.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api_error.Error'
+      summary: category category
+  /category/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: delete category by id
+      operationId: delete-category-by-id
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api_error.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api_error.Error'
+      summary: delete category by id
+    get:
+      consumes:
+      - application/json
+      description: get category by id
+      operationId: get-category-by-id
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/category.Category'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api_error.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api_error.Error'
+      summary: get category by id
+  /category/{id}/organizations:
+    put:
+      consumes:
+      - application/json
+      description: bind organizations to category
+      operationId: category-to-organizations
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: boolean
+      - description: creatable category
+        in: body
+        name: categoryIds
+        required: true
+        schema:
+          items:
+            type: integer
+          type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api_error.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api_error.Error'
+      summary: bind organizations to category
+  /organization:
+    post:
+      consumes:
+      - application/json
+      description: create organization
+      operationId: create-organization
+      parameters:
+      - description: creatable organization
+        in: body
+        name: organization
+        required: true
+        schema:
+          $ref: '#/definitions/organization.Organization'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/organization.Organization'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api_error.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api_error.Error'
+      summary: create organization
+    put:
+      consumes:
+      - application/json
+      description: update organization
+      operationId: update-organization
+      parameters:
+      - description: updatable organization
+        in: body
+        name: organization
+        required: true
+        schema:
+          $ref: '#/definitions/organization.Organization'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api_error.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api_error.Error'
+      summary: update organization
+  /organization/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: delete organization by id
+      operationId: delete-organization-by-id
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api_error.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api_error.Error'
+      summary: delete organization by id
+    get:
+      consumes:
+      - application/json
+      description: get organization by id
+      operationId: get-organization-by-id
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/organization.Organization'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api_error.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api_error.Error'
+      summary: get organization by id
+  /organizations:
+    get:
+      consumes:
+      - application/json
+      description: get organizations by params
+      operationId: get-organizations
+      parameters:
+      - description: with organization
+        in: query
+        name: with_organization
+        type: boolean
+      - description: per page
+        in: query
+        name: per_page
+        type: integer
+      - description: page
+        in: query
+        name: page
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/organization.OrganizationList'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api_error.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api_error.Error'
+      summary: get organizations
 swagger: "2.0"

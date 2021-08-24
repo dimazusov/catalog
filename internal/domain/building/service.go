@@ -34,7 +34,6 @@ func NewService(cache cache.Cache, rep Repository) Service {
 func (m service) Get(ctx context.Context, id uint) (b *Building, err error) {
 	b, err = m.getBuildingFromCache(id)
 	if err == nil {
-
 		return b, nil
 	}
 	if !errors.Is(err, apperror.ErrNotFound) {

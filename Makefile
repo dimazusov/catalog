@@ -29,4 +29,4 @@ swagger-init:
 	go get -u github.com/swaggo/swag/cmd/swag
 
 swagger: swagger-init
- 	swag init -g ./internal/server/http/router.go -o api
+	swag init -g ./internal/server/http/router.go -o api
