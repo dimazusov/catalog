@@ -1,14 +1,12 @@
 package category
 
 import (
-	"context"
-
-	"github.com/pkg/errors"
-	"gorm.io/gorm"
-
 	"catalog/internal/domain/organization"
 	"catalog/internal/pkg/apperror"
 	"catalog/internal/pkg/pagination"
+	"context"
+	"github.com/pkg/errors"
+	"gorm.io/gorm"
 )
 
 type repository struct {
@@ -130,54 +128,117 @@ func (m repository) Update(ctx context.Context, c *Category) error {
 	if err != nil {
 		return errors.Wrapf(err, "cannot get category id=%d", c.ID)
 	}
-	oldCategory, err := m.Get(ctx, curCategory.ID)
-	if err != nil {
-		return errors.Wrapf(err, "cannot get category id=%d", oldCategory.ID)
-	}
 	newParentCategory, err := m.Get(ctx, c.ParentID)
-	if err != nil {
+	if err != nil && err != apperror.ErrNotFound {
 		return errors.Wrapf(err, "cannot get category id=%d", newParentCategory.ID)
 	}
 
-	c.TLeft = curCategory.TLeft
-	c.TRight = curCategory.TRight
-
-	offsetToParentCategory := newParentCategory.TRight - c.TRight + 1
-	sizeSubTree := c.TRight - c.TLeft + 1
-
-	return m.db.Debug().Transaction(func(tx *gorm.DB) error {
-		if err = tx.Save(c).Error; err != nil {
-			return errors.Wrap(err, "cannot save category")
+	var newParentTLeft, newParentTRight uint
+	if err == apperror.ErrNotFound {
+		count, err := m.Count(ctx, &QueryConditions{})
+		if err != nil {
+			return err
 		}
+		maxIndex := count * 2
 
-		query := "UPDATE category SET t_left=t_left+?, t_right=t_right+? WHERE t_left > ? and t_right > ?"
-		err = tx.Exec(query, sizeSubTree, sizeSubTree, newParentCategory.TLeft, newParentCategory.TRight).Error
+		newParentTLeft = maxIndex
+		newParentTRight = maxIndex + 1
+	} else {
+		newParentTLeft = newParentCategory.TLeft
+		newParentTRight = newParentCategory.TRight
+	}
+
+	oldCategory, err := m.Get(ctx, curCategory.ID)
+	if err != nil && err != apperror.ErrNotFound {
+		return errors.Wrapf(err, "cannot get category id=%d", oldCategory.ID)
+	}
+	var oldParentTLeft, oldParentTRight uint
+	if err == apperror.ErrNotFound {
+		count, err := m.Count(ctx, &QueryConditions{})
+		if err != nil {
+			return err
+		}
+		maxIndex := count * 2
+
+		oldParentTLeft = maxIndex
+		oldParentTRight = maxIndex + 1
+	} else {
+		oldParentTLeft = oldCategory.TLeft
+		oldParentTRight = oldCategory.TRight
+	}
+
+	var isMoveToLeft = false
+	if oldParentTLeft > newParentTLeft && oldParentTRight > newParentTRight {
+		isMoveToLeft = true
+	}
+
+	offsetToParentCategory := int64(newParentTRight) - int64(curCategory.TRight) + 1
+	sizeSubTree := curCategory.TRight - curCategory.TLeft + 1
+
+	return m.db.Transaction(func(tx *gorm.DB) error {
+		query := `UPDATE category SET "parent_id"=?,"name"=?,"t_left"=?,"t_right"=? WHERE "id" = ?`
+		err = tx.Exec(query, c.ParentID, c.Name, curCategory.TLeft, curCategory.TRight, curCategory.ID).Error
 		if err != nil {
 			return errors.Wrap(err, "cannot update category subtree")
 		}
 
-		query = "UPDATE category SET t_right=t_right+? WHERE t_left <= ? and t_right >= ?"
-		err = tx.Exec(query, sizeSubTree, newParentCategory.TLeft, newParentCategory.TRight).Error
+		query = `UPDATE category SET t_left=t_left+?, t_right=t_right+? WHERE t_left > ? and t_right > ?`
+		err = tx.Exec(query, sizeSubTree, sizeSubTree, newParentTLeft, newParentTRight).Error
 		if err != nil {
 			return errors.Wrap(err, "cannot update category subtree")
 		}
 
-		query = "UPDATE category SET t_left=t_left+?,t_right=t_right+? WHERE t_left>=? AND t_right<=?"
-		err = tx.Exec(query, offsetToParentCategory, offsetToParentCategory, c.TLeft, c.TRight).Error
+		query = `UPDATE category SET t_right=t_right+? WHERE t_left <= ? and t_right >= ?`
+		err = tx.Exec(query, sizeSubTree, newParentTLeft, newParentTRight).Error
 		if err != nil {
 			return errors.Wrap(err, "cannot update category subtree")
 		}
 
-		query = "UPDATE category SET t_left=t_left-?, t_right=t_right-? WHERE t_left > ? and t_right > ?"
-		err = tx.Exec(query, sizeSubTree, sizeSubTree, c.TLeft, c.TRight).Error
-		if err != nil {
-			return errors.Wrap(err, "cannot update category subtree")
+		if isMoveToLeft {
+			query = `UPDATE category SET t_left=t_left+?,t_right=t_right+? WHERE t_left>=? AND t_right<=?`
+			err = tx.Exec(query,
+				offsetToParentCategory-int64(sizeSubTree),
+				offsetToParentCategory-int64(sizeSubTree),
+				curCategory.TLeft+sizeSubTree,
+				curCategory.TRight+sizeSubTree,
+			).Error
+			if err != nil {
+				return errors.Wrap(err, "cannot update category subtree")
+			}
+		} else {
+			query = `UPDATE category SET t_left=t_left+?,t_right=t_right+? WHERE t_left>=? AND t_right<=?`
+			err = tx.Exec(query, offsetToParentCategory, offsetToParentCategory, curCategory.TLeft, curCategory.TRight).Error
+			if err != nil {
+				return errors.Wrap(err, "cannot update category subtree")
+			}
 		}
 
-		query = "UPDATE category SET t_right=t_right-? WHERE t_left < ? and t_right > ?"
-		err = tx.Exec(query, sizeSubTree, oldCategory.TLeft, oldCategory.TRight).Error
-		if err != nil {
-			return errors.Wrap(err, "cannot update category subtree")
+		if isMoveToLeft {
+			query = `UPDATE category SET t_left=t_left-?, t_right=t_right-? WHERE t_left > ? and t_right > ?`
+			err = tx.Exec(query, sizeSubTree, sizeSubTree, curCategory.TLeft+sizeSubTree, curCategory.TRight+sizeSubTree).Error
+			if err != nil {
+				return errors.Wrap(err, "cannot update category subtree")
+			}
+		} else {
+			query = `UPDATE category SET t_left=t_left-?, t_right=t_right-? WHERE t_left > ? and t_right > ?`
+			err = tx.Exec(query, sizeSubTree, sizeSubTree, curCategory.TLeft, curCategory.TRight).Error
+			if err != nil {
+				return errors.Wrap(err, "cannot update category subtree")
+			}
+		}
+
+		if isMoveToLeft {
+			query = `UPDATE category SET t_right=t_right-? WHERE t_left < ? AND t_right > ?`
+			err = tx.Exec(query, sizeSubTree, curCategory.TLeft+sizeSubTree, curCategory.TRight+sizeSubTree).Error
+			if err != nil {
+				return errors.Wrap(err, "cannot update category subtree")
+			}
+		} else {
+			query = `UPDATE category SET t_right=t_right-? WHERE t_left < ? AND t_right > ?`
+			err = tx.Exec(query, sizeSubTree, curCategory.TLeft, curCategory.TRight).Error
+			if err != nil {
+				return errors.Wrap(err, "cannot update category subtree")
+			}
 		}
 
 		return nil
