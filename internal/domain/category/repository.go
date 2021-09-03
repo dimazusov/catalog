@@ -1,12 +1,15 @@
 package category
 
 import (
+	"context"
+	"fmt"
+
+	"github.com/pkg/errors"
+	"gorm.io/gorm"
+
 	"catalog/internal/domain/organization"
 	"catalog/internal/pkg/apperror"
 	"catalog/internal/pkg/pagination"
-	"context"
-	"github.com/pkg/errors"
-	"gorm.io/gorm"
 )
 
 type repository struct {
@@ -176,26 +179,26 @@ func (m repository) Update(ctx context.Context, c *Category) error {
 	sizeSubTree := curCategory.TRight - curCategory.TLeft + 1
 
 	return m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		query := `UPDATE category SET "parent_id"=?,"name"=?,"t_left"=?,"t_right"=? WHERE "id" = ?`
+		query := fmt.Sprintf(`UPDATE %s SET "parent_id"=?,"name"=?,"t_left"=?,"t_right"=? WHERE "id" = ?`, TableName)
 		err = tx.Exec(query, c.ParentID, c.Name, curCategory.TLeft, curCategory.TRight, curCategory.ID).Error
 		if err != nil {
 			return errors.Wrap(err, "cannot update category subtree")
 		}
 
-		query = `UPDATE category SET t_left=t_left+?, t_right=t_right+? WHERE t_left > ? and t_right > ?`
+		query = fmt.Sprintf(`UPDATE %s SET t_left=t_left+?, t_right=t_right+? WHERE t_left > ? and t_right > ?`, TableName)
 		err = tx.Exec(query, sizeSubTree, sizeSubTree, newParentTLeft, newParentTRight).Error
 		if err != nil {
 			return errors.Wrap(err, "cannot update category subtree")
 		}
 
-		query = `UPDATE category SET t_right=t_right+? WHERE t_left <= ? and t_right >= ?`
+		query = fmt.Sprintf(`UPDATE %s SET t_right=t_right+? WHERE t_left <= ? and t_right >= ?`, TableName)
 		err = tx.Exec(query, sizeSubTree, newParentTLeft, newParentTRight).Error
 		if err != nil {
 			return errors.Wrap(err, "cannot update category subtree")
 		}
 
 		if isMoveToLeft {
-			query = `UPDATE category SET t_left=t_left+?,t_right=t_right+? WHERE t_left>=? AND t_right<=?`
+			query = fmt.Sprintf(`UPDATE %s SET t_left=t_left+?,t_right=t_right+? WHERE t_left>=? AND t_right<=?`, TableName)
 			err = tx.Exec(query,
 				offsetToParentCategory-int64(sizeSubTree),
 				offsetToParentCategory-int64(sizeSubTree),
@@ -206,7 +209,7 @@ func (m repository) Update(ctx context.Context, c *Category) error {
 				return errors.Wrap(err, "cannot update category subtree")
 			}
 		} else {
-			query = `UPDATE category SET t_left=t_left+?,t_right=t_right+? WHERE t_left>=? AND t_right<=?`
+			query = fmt.Sprintf(`UPDATE %s SET t_left=t_left+?,t_right=t_right+? WHERE t_left>=? AND t_right<=?`, TableName)
 			err = tx.Exec(query,
 				offsetToParentCategory,
 				offsetToParentCategory,
@@ -219,13 +222,13 @@ func (m repository) Update(ctx context.Context, c *Category) error {
 		}
 
 		if isMoveToLeft {
-			query = `UPDATE category SET t_left=t_left-?, t_right=t_right-? WHERE t_left > ? and t_right > ?`
+			query = fmt.Sprintf(`UPDATE %s SET t_left=t_left-?, t_right=t_right-? WHERE t_left > ? and t_right > ?`, TableName)
 			err = tx.Exec(query, sizeSubTree, sizeSubTree, curCategory.TLeft+sizeSubTree, curCategory.TRight+sizeSubTree).Error
 			if err != nil {
 				return errors.Wrap(err, "cannot update category subtree")
 			}
 		} else {
-			query = `UPDATE category SET t_left=t_left-?, t_right=t_right-? WHERE t_left > ? and t_right > ?`
+			query = fmt.Sprintf(`UPDATE %s SET t_left=t_left-?, t_right=t_right-? WHERE t_left > ? and t_right > ?`, TableName)
 			err = tx.Exec(query, sizeSubTree, sizeSubTree, curCategory.TLeft, curCategory.TRight).Error
 			if err != nil {
 				return errors.Wrap(err, "cannot update category subtree")
@@ -233,13 +236,13 @@ func (m repository) Update(ctx context.Context, c *Category) error {
 		}
 
 		if isMoveToLeft {
-			query = `UPDATE category SET t_right=t_right-? WHERE t_left < ? AND t_right > ?`
+			query = fmt.Sprintf(`UPDATE %s SET t_right=t_right-? WHERE t_left < ? AND t_right > ?`, TableName)
 			err = tx.Exec(query, sizeSubTree, curCategory.TLeft+sizeSubTree, curCategory.TRight+sizeSubTree).Error
 			if err != nil {
 				return errors.Wrap(err, "cannot update category subtree")
 			}
 		} else {
-			query = `UPDATE category SET t_right=t_right-? WHERE t_left < ? AND t_right > ?`
+			query = fmt.Sprintf(`UPDATE %s SET t_right=t_right-? WHERE t_left < ? AND t_right > ?`, TableName)
 			err = tx.Exec(query, sizeSubTree, curCategory.TLeft, curCategory.TRight).Error
 			if err != nil {
 				return errors.Wrap(err, "cannot update category subtree")
