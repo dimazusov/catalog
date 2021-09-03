@@ -175,7 +175,7 @@ func (m repository) Update(ctx context.Context, c *Category) error {
 	offsetToParentCategory := int64(newParentTRight) - int64(curCategory.TRight) + int64(curCategory.TRight-curCategory.TLeft)
 	sizeSubTree := curCategory.TRight - curCategory.TLeft + 1
 
-	return m.db.Transaction(func(tx *gorm.DB) error {
+	return m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		query := `UPDATE category SET "parent_id"=?,"name"=?,"t_left"=?,"t_right"=? WHERE "id" = ?`
 		err = tx.Exec(query, c.ParentID, c.Name, curCategory.TLeft, curCategory.TRight, curCategory.ID).Error
 		if err != nil {
