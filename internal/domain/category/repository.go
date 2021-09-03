@@ -172,7 +172,7 @@ func (m repository) Update(ctx context.Context, c *Category) error {
 		isMoveToLeft = true
 	}
 
-	offsetToParentCategory := int64(newParentTRight) - int64(curCategory.TRight) + 1
+	offsetToParentCategory := int64(newParentTRight) - int64(curCategory.TRight) + int64(curCategory.TRight-curCategory.TLeft)
 	sizeSubTree := curCategory.TRight - curCategory.TLeft + 1
 
 	return m.db.Transaction(func(tx *gorm.DB) error {
@@ -207,7 +207,12 @@ func (m repository) Update(ctx context.Context, c *Category) error {
 			}
 		} else {
 			query = `UPDATE category SET t_left=t_left+?,t_right=t_right+? WHERE t_left>=? AND t_right<=?`
-			err = tx.Exec(query, offsetToParentCategory, offsetToParentCategory, curCategory.TLeft, curCategory.TRight).Error
+			err = tx.Exec(query,
+				offsetToParentCategory,
+				offsetToParentCategory,
+				curCategory.TLeft,
+				curCategory.TRight,
+			).Error
 			if err != nil {
 				return errors.Wrap(err, "cannot update category subtree")
 			}
