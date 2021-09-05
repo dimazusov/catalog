@@ -1,4 +1,4 @@
-##Simple catalog
+## Simple catalog
 
 Сatalog includes categories, organizations and buildings:
 - category can include many organizations
@@ -29,8 +29,8 @@ type Organization struct {
 
 ## make commands
     make up - run application
-    make test - run tests <br/>
-    make lint - run linters <br/>
-    make migrate - run migrations <br/>
-    make swagger - update swagger docs to directory api <br/>
-    make test-data - fill db tests cases <br/>
+    make test - run tests
+    make lint - run linters
+    make migrate - run migrations
+    make swagger - update swagger docs to directory api
+    make test-data - fill db tests cases
