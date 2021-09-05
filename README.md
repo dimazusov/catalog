@@ -24,10 +24,10 @@ type Organization struct {
 }
 ```
 
-## docs
+## Docs
     api/swagger.json - swagger api
 
-## make commands
+## Make commands
     make up - run application
     make test - run tests
     make lint - run linters
