@@ -4,13 +4,13 @@ server:
     port: "8080"
 
 redis:
-  address: "localhost:6379"
+  address: "redis:6379"
   password: ""
 
 db:
   postgres:
     dialect: "postgres"
-    dsn: "host=localhost port=5432 dbname=db user=db password=db sslmode=disable"
+    dsn: "host=postgres port=5432 dbname=db user=db password=db sslmode=disable"
   memory:
     maxsize: 20
 
