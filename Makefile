@@ -11,7 +11,10 @@ lint: install-lint-deps
 	golangci-lint run ./...
 
 migrate:
-	docker-compose -f deployments/docker-compose.yaml exec -it sh
+	docker-compose -f deployments/docker-compose.yaml exec app sh -c "/opt/catalog/migrations --config=/etc/catalog/config.yaml"
+
+test-data:
+	docker-compose -f deployments/docker-compose.yaml exec app sh -c "/opt/catalog/testdatagen --config=/etc/catalog/config.yaml"
 
 swagger-init:
 	go get -u github.com/swaggo/swag/cmd/swag
